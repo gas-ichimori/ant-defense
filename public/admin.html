@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者パネル — 地球防衛作戦</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: #111;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .panel {
+      background: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 16px;
+      padding: 36px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h2 { font-size: 22px; margin-bottom: 28px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #2a2a2a;
+      border: 1px solid #444;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 16px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+
+    input:focus { border-color: #ff4444; }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      background: #ff4444;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button:hover { background: #cc2222; }
+
+    #result {
+      margin-top: 20px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 16px;
+      text-align: center;
+      display: none;
+    }
+
+    .ok  { background: rgba(68,255,136,0.15); color: #44ff88; border: 1px solid rgba(68,255,136,0.3); }
+    .err { background: rgba(255,68,68,0.15);  color: #ff8888; border: 1px solid rgba(255,68,68,0.3); }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h2>🛡️ 管理者パネル</h2>
+
+    <label>管理者パスワード</label>
+    <input type="password" id="secret" placeholder="パスワードを入力" />
+
+    <label>蟻の数（リセット後）</label>
+    <input type="number" id="count" value="10000" min="1" max="10000" />
+
+    <button onclick="doReset()">🔄 ゲームをリセット</button>
+
+    <div id="result"></div>
+  </div>
+
+  <script>
+    async function doReset() {
+      const secret = document.getElementById('secret').value.trim();
+      const count  = parseInt(document.getElementById('count').value) || 10000;
+      const el     = document.getElementById('result');
+
+      el.style.display = 'none';
+
+      try {
+        const res  = await fetch('/admin/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secret, count }),
+        });
+        const data = await res.json();
+
+        el.style.display = 'block';
+        if (res.ok) {
+          el.className = 'ok';
+          el.textContent = `✅ リセット完了！残り ${data.remaining.toLocaleString()} 匹`;
+        } else {
+          el.className = 'err';
+          el.textContent = `❌ ${data.error}`;
+        }
+      } catch {
+        el.style.display = 'block';
+        el.className = 'err';
+        el.textContent = '❌ 接続エラー';
+      }
+    }
+  </script>
+</body>
+</html>

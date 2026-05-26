@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>地球防衛作戦 — 参加</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      background: linear-gradient(160deg, #050f05 0%, #0a0a1a 100%);
+      color: #fff;
+      font-family: -apple-system, 'Hiragino Sans', 'Noto Sans JP', 'Arial', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+    }
+
+    .screen {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 22px;
+    }
+
+    .icon { font-size: 76px; line-height: 1; }
+
+    h1 { font-size: 30px; font-weight: 900; letter-spacing: 1px; }
+
+    .subtitle {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.7;
+    }
+
+    .count-box {
+      width: 100%;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 22px;
+      padding: 22px 32px;
+    }
+
+    .count-box .big {
+      font-size: 52px;
+      font-weight: 900;
+      color: #ffdd55;
+      line-height: 1;
+    }
+
+    .count-box .lbl {
+      font-size: 15px;
+      color: rgba(255,255,255,0.45);
+      margin-top: 6px;
+    }
+
+    .remaining-count { /* updated by JS */ }
+
+    #defeat-btn {
+      width: 100%;
+      padding: 30px 20px;
+      background: linear-gradient(135deg, #ff4444 0%, #bb0000 100%);
+      border: none;
+      border-radius: 22px;
+      color: white;
+      font-size: 30px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 8px 36px rgba(255, 60, 60, 0.45);
+      transition: transform 0.1s, box-shadow 0.1s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      letter-spacing: 1px;
+    }
+
+    #defeat-btn:active:not(:disabled) {
+      transform: scale(0.95);
+      box-shadow: 0 4px 16px rgba(255, 60, 60, 0.3);
+    }
+
+    #defeat-btn:disabled {
+      background: #2a2a2a;
+      box-shadow: none;
+      cursor: not-allowed;
+      color: #666;
+    }
+
+    .badge-success {
+      width: 100%;
+      background: rgba(68, 255, 136, 0.12);
+      border: 2px solid rgba(68, 255, 136, 0.4);
+      border-radius: 18px;
+      padding: 18px 24px;
+      font-size: 20px;
+      color: #44ff88;
+      font-weight: bold;
+    }
+
+    .badge-check {
+      width: 100%;
+      background: rgba(255, 220, 0, 0.1);
+      border: 2px solid rgba(255, 220, 0, 0.35);
+      border-radius: 18px;
+      padding: 18px 24px;
+      font-size: 18px;
+      color: #ffdd44;
+      font-weight: bold;
+    }
+
+    .muted {
+      font-size: 13px;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 開始画面 -->
+  <div id="screen-start" class="screen">
+    <div class="icon">🐜</div>
+    <h1>地球防衛作戦</h1>
+    <div class="subtitle">QRコードをスキャンしてくれてありがとう！<br>ボタンを押して蟻を1匹倒そう！</div>
+
+    <div class="count-box">
+      <div class="big remaining-count">--</div>
+      <div class="lbl">匹の蟻が残っています</div>
+    </div>
+
+    <button id="defeat-btn" onclick="defeatAnt()">🐜 蟻を倒す！</button>
+
+    <div class="muted">1台のスマホにつき1回まで参加できます</div>
+  </div>
+
+  <!-- 成功画面 -->
+  <div id="screen-success" class="screen" hidden>
+    <div class="icon">⚔️</div>
+    <h1>撃退成功！</h1>
+    <div class="badge-success">🎉 蟻を1匹倒した！</div>
+
+    <div class="count-box">
+      <div class="big remaining-count">--</div>
+      <div class="lbl">匹がまだ残っています</div>
+    </div>
+
+    <div class="subtitle">ありがとう！<br>友達を誘ってみんなで地球を守ろう！</div>
+    <div class="muted">👀 大画面を見てみよう</div>
+  </div>
+
+  <!-- 参加済み画面 -->
+  <div id="screen-already" class="screen" hidden>
+    <div class="icon">✅</div>
+    <h1>参加済みです</h1>
+    <div class="badge-check">あなたはすでに蟻を1匹倒しました！</div>
+
+    <div class="count-box">
+      <div class="big remaining-count">--</div>
+      <div class="lbl">匹がまだ残っています</div>
+    </div>
+
+    <div class="subtitle">引き続き大画面で戦況を見守ろう！</div>
+    <div class="muted">👀 大画面を確認しよう</div>
+  </div>
+
+  <!-- 勝利画面 -->
+  <div id="screen-gameover" class="screen" hidden>
+    <div class="icon">🌍</div>
+    <h1>地球防衛成功！</h1>
+    <div class="badge-success">🎊 全10,000匹の蟻を全滅させた！</div>
+    <div class="subtitle">みんなの力で地球が守られました。<br>お疲れ様でした！</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/join.js"></script>
+</body>
+</html>

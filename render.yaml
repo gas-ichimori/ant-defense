@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: ant-defense
+    env: node
+    region: singapore
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ADMIN_SECRET
+        generateValue: true
+      - key: NODE_ENV
+        value: production

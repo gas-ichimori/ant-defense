@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>地球防衛作戦</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #04100a;
+      overflow: hidden;
+      font-family: 'Arial Black', 'Arial', sans-serif;
+    }
+
+    #canvas {
+      position: fixed;
+      top: 0; left: 0;
+      display: block;
+    }
+
+    /* ---- HUD ---- */
+    #hud {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+
+    #counter {
+      position: absolute;
+      top: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.78);
+      backdrop-filter: blur(12px);
+      border: 2px solid rgba(255, 255, 255, 0.18);
+      border-radius: 60px;
+      padding: 14px 52px;
+      color: #fff;
+      font-size: 38px;
+      font-weight: 900;
+      white-space: nowrap;
+      letter-spacing: 2px;
+    }
+
+    #counter .num {
+      color: #ff5544;
+      font-size: 54px;
+      text-shadow: 0 0 24px rgba(255, 80, 60, 0.9);
+      transition: color 0.5s;
+    }
+
+    #counter .num.safe   { color: #44ff88; text-shadow: 0 0 24px rgba(68,255,136,0.8); }
+    #counter .num.warn   { color: #ffdd00; text-shadow: 0 0 24px rgba(255,220,0,0.8); }
+    #counter .num.danger { color: #ff5544; text-shadow: 0 0 24px rgba(255,80,60,0.9); }
+
+    /* ---- QR パネル ---- */
+    #qr-panel {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      background: #fff;
+      border-radius: 20px;
+      padding: 18px;
+      text-align: center;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    }
+
+    #qr-panel img {
+      width: 168px;
+      height: 168px;
+      display: block;
+    }
+
+    #qr-label {
+      color: #222;
+      font-size: 15px;
+      font-weight: 900;
+      margin-top: 10px;
+    }
+
+    #qr-url {
+      color: #888;
+      font-size: 11px;
+      margin-top: 4px;
+      font-family: monospace;
+    }
+
+    /* ---- 下部ミッション文 ---- */
+    #mission {
+      position: absolute;
+      bottom: 30px;
+      left: 28px;
+      color: rgba(255,255,255,0.55);
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    /* ---- プログレスバー ---- */
+    #progress-wrap {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      height: 10px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #44ff88 0%, #ffdd00 50%, #ff4444 100%);
+      background-size: 300% 100%;
+      transition: width 0.4s ease;
+    }
+
+    /* ---- 勝利オーバーレイ ---- */
+    #victory {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 8, 0, 0.93);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 2s;
+    }
+
+    #victory.show { opacity: 1; }
+
+    #victory h1 {
+      font-size: 88px;
+      color: #ffdd00;
+      text-shadow: 0 0 60px #ffaa00, 0 0 120px #ff6600;
+      animation: vpulse 1.5s ease-in-out infinite;
+    }
+
+    #victory p {
+      font-size: 38px;
+      color: #aaffaa;
+      text-shadow: 0 0 20px #44ff44;
+    }
+
+    #victory .sub {
+      font-size: 22px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    @keyframes vpulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+
+  <div id="hud">
+    <div id="counter">
+      🐜 残り&nbsp;<span class="num danger" id="count">10,000</span>&nbsp;匹
+    </div>
+
+    <div id="qr-panel">
+      <img id="qr-img" src="/qr" alt="QR Code" />
+      <div id="qr-label">📱 スキャンして参加！</div>
+      <div id="qr-url"></div>
+    </div>
+
+    <div id="mission">🌍 地球防衛作戦 — みんなの力で蟻を全滅させろ！</div>
+
+    <div id="progress-wrap">
+      <div id="progress-bar"></div>
+    </div>
+  </div>
+
+  <div id="victory">
+    <h1>🌍 地球防衛成功！</h1>
+    <p>全 10,000 匹の蟻を撃退した！</p>
+    <div class="sub">みんなの団結が地球を救った</div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/main.js"></script>
+</body>
+</html>
