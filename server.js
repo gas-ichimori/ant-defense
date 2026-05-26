@@ -31,6 +31,7 @@ function saveState() {
 
 let { remaining: remainingAnts } = loadState();
 let gameActive = remainingAnts > 0;
+let freeMode = false; // true = 何回でも参加OK（デバッグ用）
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -59,12 +60,23 @@ app.post('/admin/reset', (req, res) => {
   remainingAnts = Math.min(TOTAL_ANTS, Math.max(1, parseInt(count) || TOTAL_ANTS));
   gameActive = true;
   saveState();
-  io.emit('reset', { remaining: remainingAnts, total: TOTAL_ANTS });
+  io.emit('reset', { remaining: remainingAnts, total: TOTAL_ANTS, freeMode });
   res.json({ success: true, remaining: remainingAnts });
 });
 
+// 参加制限モード切替エンドポイント
+app.post('/admin/set-mode', (req, res) => {
+  const { secret, free } = req.body;
+  if (secret !== ADMIN_SECRET) {
+    return res.status(403).json({ error: 'パスワードが違います' });
+  }
+  freeMode = !!free;
+  io.emit('mode-changed', { freeMode });
+  res.json({ success: true, freeMode });
+});
+
 io.on('connection', (socket) => {
-  socket.emit('state', { remaining: remainingAnts, total: TOTAL_ANTS });
+  socket.emit('state', { remaining: remainingAnts, total: TOTAL_ANTS, freeMode });
 
   socket.on('defeat-ant', (_, callback) => {
     if (!gameActive || remainingAnts <= 0) {

@@ -13,9 +13,9 @@
       color: #fff;
       font-family: Arial, sans-serif;
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: center;
-      padding: 24px;
+      padding: 40px 24px;
     }
 
     .panel {
@@ -24,16 +24,33 @@
       border-radius: 16px;
       padding: 36px;
       width: 100%;
-      max-width: 420px;
+      max-width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
     }
 
-    h2 { font-size: 22px; margin-bottom: 28px; }
+    h2 { font-size: 22px; }
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid #2a2a2a;
+      padding-top: 24px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
     label {
       display: block;
       font-size: 13px;
       color: #aaa;
-      margin-bottom: 6px;
     }
 
     input {
@@ -44,36 +61,44 @@
       border-radius: 10px;
       color: #fff;
       font-size: 16px;
-      margin-bottom: 20px;
       outline: none;
     }
 
     input:focus { border-color: #ff4444; }
 
-    button {
+    .btn {
       width: 100%;
       padding: 16px;
-      background: #ff4444;
       border: none;
       border-radius: 10px;
       color: white;
-      font-size: 18px;
+      font-size: 17px;
       font-weight: bold;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: opacity 0.15s;
     }
+    .btn:hover { opacity: 0.85; }
+    .btn-red    { background: #cc2222; }
+    .btn-green  { background: #1a7a40; }
+    .btn-yellow { background: #7a6a00; }
 
-    button:hover { background: #cc2222; }
-
-    #result {
-      margin-top: 20px;
+    .mode-display {
       padding: 14px 18px;
       border-radius: 10px;
-      font-size: 16px;
+      font-size: 15px;
+      font-weight: bold;
+      text-align: center;
+    }
+    .mode-restricted { background: rgba(68,136,255,0.15); color: #88aaff; border: 1px solid rgba(68,136,255,0.3); }
+    .mode-free       { background: rgba(255,180,0,0.15);  color: #ffcc44; border: 1px solid rgba(255,180,0,0.3); }
+
+    .result {
+      padding: 14px 18px;
+      border-radius: 10px;
+      font-size: 15px;
       text-align: center;
       display: none;
     }
-
     .ok  { background: rgba(68,255,136,0.15); color: #44ff88; border: 1px solid rgba(68,255,136,0.3); }
     .err { background: rgba(255,68,68,0.15);  color: #ff8888; border: 1px solid rgba(255,68,68,0.3); }
   </style>
@@ -82,25 +107,90 @@
   <div class="panel">
     <h2>🛡️ 管理者パネル</h2>
 
-    <label>管理者パスワード</label>
-    <input type="password" id="secret" placeholder="パスワードを入力" />
+    <!-- 共通パスワード -->
+    <div>
+      <label style="margin-bottom:6px;">管理者パスワード</label>
+      <input type="password" id="secret" placeholder="パスワードを入力" />
+    </div>
 
-    <label>蟻の数（リセット後）</label>
-    <input type="number" id="count" value="10000" min="1" max="10000" />
+    <!-- 参加制限モード切替 -->
+    <div class="section">
+      <div class="section-title">参加制限モード</div>
 
-    <button onclick="doReset()">🔄 ゲームをリセット</button>
+      <div id="mode-display" class="mode-display mode-restricted">
+        🔒 制限あり（1デバイス1回）
+      </div>
 
-    <div id="result"></div>
+      <button class="btn btn-yellow" onclick="setMode(true)">
+        🔓 デバッグ：制限なし（何回でもOK）
+      </button>
+      <button class="btn btn-green" onclick="setMode(false)">
+        🔒 本番：1デバイス1回に戻す
+      </button>
+
+      <div id="mode-result" class="result"></div>
+    </div>
+
+    <!-- ゲームリセット -->
+    <div class="section">
+      <div class="section-title">ゲームリセット</div>
+
+      <label>蟻の数（リセット後）</label>
+      <input type="number" id="count" value="10000" min="1" max="10000" />
+
+      <button class="btn btn-red" onclick="doReset()">🔄 ゲームをリセット</button>
+
+      <div id="reset-result" class="result"></div>
+    </div>
   </div>
 
   <script>
+    function getSecret() {
+      return document.getElementById('secret').value.trim();
+    }
+
+    function showResult(elId, ok, text) {
+      const el = document.getElementById(elId);
+      el.style.display = 'block';
+      el.className = `result ${ok ? 'ok' : 'err'}`;
+      el.textContent = text;
+    }
+
+    async function setMode(free) {
+      const secret = getSecret();
+      try {
+        const res  = await fetch('/admin/set-mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ secret, free }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          updateModeDisplay(data.freeMode);
+          showResult('mode-result', true,
+            data.freeMode ? '✅ デバッグモード ON（制限なし）' : '✅ 本番モードに戻しました');
+        } else {
+          showResult('mode-result', false, `❌ ${data.error}`);
+        }
+      } catch {
+        showResult('mode-result', false, '❌ 接続エラー');
+      }
+    }
+
+    function updateModeDisplay(isFree) {
+      const el = document.getElementById('mode-display');
+      if (isFree) {
+        el.className = 'mode-display mode-free';
+        el.textContent = '🔓 デバッグ中（制限なし・何回でもOK）';
+      } else {
+        el.className = 'mode-display mode-restricted';
+        el.textContent = '🔒 制限あり（1デバイス1回）';
+      }
+    }
+
     async function doReset() {
-      const secret = document.getElementById('secret').value.trim();
+      const secret = getSecret();
       const count  = parseInt(document.getElementById('count').value) || 10000;
-      const el     = document.getElementById('result');
-
-      el.style.display = 'none';
-
       try {
         const res  = await fetch('/admin/reset', {
           method: 'POST',
@@ -108,19 +198,13 @@
           body: JSON.stringify({ secret, count }),
         });
         const data = await res.json();
-
-        el.style.display = 'block';
         if (res.ok) {
-          el.className = 'ok';
-          el.textContent = `✅ リセット完了！残り ${data.remaining.toLocaleString()} 匹`;
+          showResult('reset-result', true, `✅ リセット完了！残り ${data.remaining.toLocaleString()} 匹`);
         } else {
-          el.className = 'err';
-          el.textContent = `❌ ${data.error}`;
+          showResult('reset-result', false, `❌ ${data.error}`);
         }
       } catch {
-        el.style.display = 'block';
-        el.className = 'err';
-        el.textContent = '❌ 接続エラー';
+        showResult('reset-result', false, '❌ 接続エラー');
       }
     }
   </script>

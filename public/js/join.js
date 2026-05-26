@@ -5,12 +5,18 @@ let remaining = null;
 let total = 10000;
 let participated = localStorage.getItem(STORAGE_KEY) === 'true';
 let gameOver = false;
+let freeMode = false;
 
 const SCREENS = ['start', 'success', 'already', 'gameover'];
 
 function show(name) {
   SCREENS.forEach(s => {
-    document.getElementById(`screen-${s}`).hidden = (s !== name);
+    const el = document.getElementById(`screen-${s}`);
+    if (s === name) {
+      el.removeAttribute('hidden');
+    } else {
+      el.setAttribute('hidden', '');
+    }
   });
 }
 
@@ -24,19 +30,22 @@ function syncCounts() {
   });
 }
 
-socket.on('state', (data) => {
-  remaining = data.remaining;
-  total = data.total;
-  syncCounts();
-
-  if (data.remaining <= 0) {
-    gameOver = true;
+function decideScreen() {
+  if (gameOver || remaining <= 0) {
     show('gameover');
-  } else if (participated) {
+  } else if (participated && !freeMode) {
     show('already');
   } else {
     show('start');
   }
+}
+
+socket.on('state', (data) => {
+  remaining = data.remaining;
+  total = data.total;
+  freeMode = !!data.freeMode;
+  syncCounts();
+  decideScreen();
 });
 
 socket.on('ant-defeated', (data) => {
@@ -52,6 +61,7 @@ socket.on('victory', () => {
 socket.on('reset', (data) => {
   gameOver = false;
   participated = false;
+  freeMode = !!data.freeMode;
   localStorage.removeItem(STORAGE_KEY);
   remaining = data.remaining;
   total = data.total;
@@ -59,14 +69,19 @@ socket.on('reset', (data) => {
   show('start');
 });
 
+socket.on('mode-changed', (data) => {
+  freeMode = !!data.freeMode;
+  // フリーモードに切替時は参加済み状態を無視してスタート画面へ
+  if (!gameOver) decideScreen();
+});
+
 function defeatAnt() {
-  if (participated || gameOver) return;
+  if ((!freeMode && participated) || gameOver) return;
 
   const btn = document.getElementById('defeat-btn');
   btn.disabled = true;
   btn.textContent = '⏳ 送信中...';
 
-  // タイムアウト保険（5秒）
   const timer = setTimeout(() => {
     btn.disabled = false;
     btn.textContent = '🐜 蟻を倒す！';
@@ -82,11 +97,20 @@ function defeatAnt() {
     }
 
     if (res.success) {
-      participated = true;
-      localStorage.setItem(STORAGE_KEY, 'true');
+      if (!freeMode) {
+        participated = true;
+        localStorage.setItem(STORAGE_KEY, 'true');
+      }
       remaining = res.remaining;
       syncCounts();
-      show('success');
+      // フリーモード時は成功後すぐにスタート画面に戻る
+      if (freeMode) {
+        btn.disabled = false;
+        btn.textContent = '🐜 蟻を倒す！';
+        show('start');
+      } else {
+        show('success');
+      }
     } else if (res.reason === 'game_over') {
       gameOver = true;
       show('gameover');
